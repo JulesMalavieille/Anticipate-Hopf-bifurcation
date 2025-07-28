@@ -13,15 +13,15 @@ from scipy.signal import argrelextrema
 from scipy.interpolate import UnivariateSpline
 
 
-def bruit(nbval, dt):   # Génération du bruit
+def bruit(nbval, dt):   # Noise generation
     return np.sqrt(dt) * np.random.normal(0, 1, nbval)
 
 
-def cut_L(L, every):   # Produire un échantillonage
+def cut_L(L, every):   # Sampling
     return L[::int(every)]
 
 
-def Milstein_test(dt, B, u, m, sig):  # Simulation modèle test
+def Milstein_test(dt, B, u, m, sig):  # Simulation test model
     nbval = len(B)
     X = np.zeros(nbval)
     X[0] = 0
@@ -38,7 +38,7 @@ def Milstein_test(dt, B, u, m, sig):  # Simulation modèle test
     return X
 
 
-def Milstein_null(dt, B, u, sig):   # Simulation du modèle null
+def Milstein_null(dt, B, u, sig):   # Simulation null model
     nbval = len(B)
     X = np.zeros(nbval)
     X[0] = 0
@@ -50,7 +50,7 @@ def Milstein_null(dt, B, u, sig):   # Simulation du modèle null
     return X
 
 
-def func(t, Y, u, m, sig):   # Esperance et variance modèle test
+def func(t, Y, u, m, sig):   # Esperance and variance test model
     E, V = Y
     ut = max(u + m * t, 1E-6)
 
@@ -65,7 +65,7 @@ def traj(u, m, sig, data_func, t_eval):
     return sol.y[0], sol.y[1]
 
 
-def test_model(params, data_func, t_eval, sig):  # Calcul log-vraisemblance modèle test
+def test_model(params, data_func, t_eval, sig):  # test model log-likelihood
     u, m = params
     E, V = traj(u, m, sig, data_func, t_eval)
     logV = 0
@@ -80,7 +80,7 @@ def test_model(params, data_func, t_eval, sig):  # Calcul log-vraisemblance mod�
     return -logV + a * penalty
 
 
-def null_model(params, data, ti, sig):   # Calcul log-vraisemblance du modèle null
+def null_model(params, data, ti, sig):   # Null model log-likelihood
     u = params
     logV = 0
     X_L = []
@@ -100,7 +100,7 @@ def null_model(params, data, ti, sig):   # Calcul log-vraisemblance du modèle n
     return -logV
 
 
-def amplitude(data, t):   # Génération de l'amplitude à partir de données 
+def amplitude(data, t):   # Generation of amplitude with data 
     data_c = data - data[0]  
 
     maxima = argrelextrema(data_c, np.greater)[0]
@@ -118,7 +118,7 @@ def amplitude(data, t):   # Génération de l'amplitude à partir de données
     return interp_amp(t)
 
 
-def sig_test(data_func, t_eval, u, m, sigma_grid, dt): # Méthode Monte-Carlo pour trouver sigma modèle test
+def sig_test(data_func, t_eval, u, m, sigma_grid, dt): # Monte-Carlo method to find sigma test model
     nbval = len(t_eval)
     logL_list = []
     t_sim = np.arange(0, nbval * dt, dt)
@@ -150,7 +150,7 @@ def sig_test(data_func, t_eval, u, m, sigma_grid, dt): # Méthode Monte-Carlo po
     return sigma_opt, logL_list
     
 
-def sig_null(params, dt, B, u, m, sig):  # Calibration du sigma du modèle null 
+def sig_null(params, dt, B, u, m, sig):  # Null model sigma calibration  
     sig0 = params
     null = Milstein_null(dt, B, u, sig0) 
     test = Milstein_test(dt, B, u, m, sig) 
@@ -161,7 +161,7 @@ def sig_null(params, dt, B, u, m, sig):  # Calibration du sigma du modèle null
     return distT 
 
 
-size = 98   # point de bascule : size=144
+size = 98   # tipping point : size=144
 dt = 0.005
 nbval = 10000
 n_sim = 100
@@ -180,7 +180,7 @@ data = amplitude(data_t, t_obs)
 x = np.arange(len(data)) 
 y = data                  
 
-spline = UnivariateSpline(x, data, s=0.1)  # Interpolation de l'amplitude -> Fonction lisse et exploitable 
+spline = UnivariateSpline(x, data, s=0.1)  # Interpolation of amplitude -> smooth and exploitable functio, 
 
 data_func = interp1d(t_obs, spline(x), kind='linear', fill_value='extrapolate')
 
@@ -190,19 +190,19 @@ mL = (0, 2)   # Gamme de m à tester
 x0 = [-2, 0.4]
 bornes = [uL, mL]
 
-param_T = minimize(test_model, x0, args=(data_func, t_obs, 0), bounds=bornes, method="L-BFGS-B") # Paramètre u et m du modèle test sur les données
-param_N = minimize(null_model, -1, args=(data, ti, 0), bounds=[(-10, 5)], method="L-BFGS-B")  # Paramètre u du modèle null sur les données
+param_T = minimize(test_model, x0, args=(data_func, t_obs, 0), bounds=bornes, method="L-BFGS-B") # Paramter u and m test model
+param_N = minimize(null_model, -1, args=(data, ti, 0), bounds=[(-10, 5)], method="L-BFGS-B")  # Paramter u and m null model
 
 sigL = np.linspace(0, 0.5, 50)
-sig, sig_V = sig_test(data_func, t_obs, *param_T.x, sigL, dt)  # Calcul du sigma modèle test
-sig_N = minimize(sig_null, 0, args=(dt, B, -1, 0, sig), bounds=[(sigL[0], sigL[-1])], method="L-BFGS-B")  #Calcul sigma modèle null
+sig, sig_V = sig_test(data_func, t_obs, *param_T.x, sigL, dt)  # sigma test model
+sig_N = minimize(sig_null, 0, args=(dt, B, -1, 0, sig), bounds=[(sigL[0], sigL[-1])], method="L-BFGS-B")  # sigma null model
 
-ampl_est, V = traj(*param_T.x, sig, data_func, t_obs)   # Calcul de l'esperance de l'amplitude 
-ampl_null = Milstein_null(dt, B, param_N.x, sig_N.x)   # Simulation modèle null
-ampl_test = Milstein_test(dt, B, *param_T.x, sig)   # Simulation du modèle test
+ampl_est, V = traj(*param_T.x, sig, data_func, t_obs)   # esperance of amplitude 
+ampl_null = Milstein_null(dt, B, param_N.x, sig_N.x)   # Simulation null model
+ampl_test = Milstein_test(dt, B, *param_T.x, sig)   # Simulation test model
 
-plt.plot(t_obs, data_func(t_obs), label="Amplitude mesuré")   # Graphique permettant de valider le fonctionnement des modèles 
-plt.plot(t_obs, ampl_est, label="Amplitude estimé")           # Et il permet de calibrer le bruit du modèle null sur le modèle test
+plt.plot(t_obs, data_func(t_obs), label="Amplitude mesuré")   # Graphe to validate models are working as they should
+plt.plot(t_obs, ampl_est, label="Amplitude estimé")           # And calibrate sigma null model
 plt.plot(t_tr, ampl_null, label="Modèle Null")
 plt.plot(t_tr, ampl_test, label="Amplitude simulé par modèle test")
 plt.xlabel("Temps")
@@ -219,7 +219,7 @@ print("sig =", sig)
 null = np.zeros([size, n_sim])
 test = np.zeros([size, n_sim])
 
-print("Boucle 1/3")  # la génération des 100 simulations du modèle null et du modèle test avec les paramètres estimé plus tôt
+print("Boucle 1/3")  # generation of 100 simulation of null and test model
 for i in range(n_sim): 
     B1 = bruit(nbval, dt)
     B2 = bruit(nbval, dt)
@@ -233,7 +233,7 @@ for i in range(n_sim):
         print(n_sim,"sur",n_sim,"simulations")
 
 print()
-print("Boucle 2/3")   # Calcul de la D-stat pour les données du modèle null 
+print("Boucle 2/3")   # D-stat null-model 
 D0 = []
 for i in range(n_sim):
     data_func0 = interp1d(t_obs, null[:,i], kind='linear', fill_value="extrapolate")
@@ -247,7 +247,7 @@ for i in range(n_sim):
         print(n_sim,"sur",n_sim,"simulations")
         
 print()
-print("Boucle 3/3")  # Calcul de la D-stat pour les données du modèle test
+print("Boucle 3/3")  # D-stat test-model 
 D1 = []
 for i in range(n_sim):
     data_func1 = interp1d(t_obs, test[:,i], kind='linear', fill_value="extrapolate")
@@ -261,7 +261,7 @@ for i in range(n_sim):
         print(n_sim,"sur",n_sim,"simulations")
 
 
-# Récupération dans des fichiers des distributions D0 et D1
+# D0 and D1 data 
 np.savetxt("D0_Hopf.txt", D0)
 np.savetxt("D1_Hopf.txt", D1)
     
