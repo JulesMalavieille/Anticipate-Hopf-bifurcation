@@ -17,10 +17,9 @@ e = 0.7
 m = 0.2
 sig = 0.01
 
-# x* = m*b/(e*a-m) = 0.533...  l'équilibre initial
-# Or cet équilibre deviens instable si K > (2*m*b)/(e*a-m) + b = Kcrit
-# Donc le point de bascule vers un cycle limite est quand K > Kcrit
-
+# x* = m*b/(e*a-m) = 0.533...  Initial equilibrium
+# it becames unstable if K > (2*m*b)/(e*a-m) + b = Kcrit
+# So the tipping point to the limit cycle is when K > Kcrit
 
 def cut_L(L, every):
     return L[::int(every)]
