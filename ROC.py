@@ -9,12 +9,12 @@ import numpy as np
 import sys
 
 
-def gauss(u):  # Génère un nombre qui suit Normal(u, 1)
+def gauss(u):  # Noise
     gauss = 1/np.sqrt(2*np.pi) * np.exp(-u**2/2)
     return gauss
 
 
-def KDE(x, xest, h):   # Estimation des lois de proba par KDE 
+def KDE(x, xest, h):   # Estimation of porbability distribution by KDE
     x = np.asarray(x)[:, np.newaxis]      
     xest = np.asarray(xest)[np.newaxis, :]
     z = (xest - x) / h                     
@@ -23,7 +23,7 @@ def KDE(x, xest, h):   # Estimation des lois de proba par KDE
     return f  
 
 
-def k_fold(data, h_L, k):   # Validation croisé pour trouvé le h optimal pour le KDE
+def k_fold(data, h_L, k):   # Cross validation to find out optimal h for KDE
     data = np.array(data)
     np.random.shuffle(data)
     split = np.split(data, k)
@@ -43,8 +43,8 @@ def k_fold(data, h_L, k):   # Validation croisé pour trouvé le h optimal pour 
     return h_opt, log_L
 
 
-# Permet de générer la courbe ROC à partir de 2 distributions 
-def ROC(f, g, xf, xg, n):    # f = fonction "négative" et g = fonction "positive" (du test)
+# Generate ROC curve using 2 distributions
+def ROC(f, g, xf, xg, n):    # f = function "negative" et g = function "positive" (of test)
     a = 1
     
     ROCf = []
@@ -91,7 +91,7 @@ def ROC(f, g, xf, xg, n):    # f = fonction "négative" et g = fonction "positiv
     return ROCf, ROCg, seuils, a
 
 
-# Toutes les données générées 
+# All different types of data tested
 
 """Bifurcation pli"""
 
@@ -169,7 +169,7 @@ max0 = max(D0)
 min1 = min(D1)
 max1 = max(D1)
 
-# Permet de rallonger les lois de proba pour qu'elles arrivent sufisament proche de 0
+# Add tails to porbability distributions 
 tail0 = (max(D0)-min(D0))*0.2 
 tail1 = (max(D1)-min(D1))*0.2
 
@@ -191,7 +191,7 @@ h1, log1 = k_fold(D1, h1_values, k=5)
 D0_law = KDE(D0, x0, h0)
 D1_law = KDE(D1, x1, h1)
     
-# Vérifie de le calcul des KDE soit bon, si intégrale de D0_law ou D1_law =! 1 à l'erreur numérique près = erreur 
+# Check that KDE is great, if integrale of D0_law or D1_law =! 1 except for numerical incertitude = error 
 if np.trapz(D1_law, x1) < 0.95 or np.trapz(D0_law, x0) < 0.95:
     print("ERREUR : le calcul des lois de porbabilités est différent de 1 à l'erreur près")
     print("Intégrale de D0 =", np.trapz(D0_law, x0))
@@ -202,7 +202,7 @@ if np.trapz(D1_law, x1) < 0.95 or np.trapz(D0_law, x0) < 0.95:
 n = 5
 ROC_0, ROC_1, seuil, a = ROC(D0_law, D1_law, x0, x1, n)
 
-"""Histogramme"""
+"""Histogram"""
 plt.figure(1)
 plt.hist(D0, label="Pas de bascule")
 plt.hist(D1, label="Bascule")
@@ -211,7 +211,7 @@ plt.ylabel("P(D)")
 plt.title("Histogramme distribution observé D-statistique")
 plt.legend()
 
-"""Loi de proba estimé"""
+"""Probability distribution"""
 plt.figure(2)
 plt.plot(x0, D0_law, label="Null-Model")
 plt.plot(x1, D1_law, label="Shift-Model")
@@ -225,7 +225,7 @@ plt.title("Densité de probabilité D-statistique", fontsize=30)
 plt.grid()
 plt.legend()
 
-"""Courbe ROC"""
+"""ROC curve"""
 plt.figure(3)
 plt.plot(ROC_0, ROC_1, "*-")
 plt.xlabel("Taux de faux positif", fontsize=20)
@@ -241,7 +241,7 @@ if a == 0:
     print("AUC =",1)
     print("Le test fais 100% de vrai positif")
 
-# Calcul de l'AUC
+# AUC 
 else:
     AUC = np.trapz(ROC_1, ROC_0)
     print("Le score AUC de la courbe ROC est :", round(AUC,3))
@@ -250,7 +250,7 @@ else:
     print()
 
 
-# Procédure pour calculer le recouvrement d'une courbe sur l'autre
+# Overlap of the 2 curves 
 grid_min = min(np.min(D0), np.min(D1))
 grid_max = max(np.max(D0), np.max(D1))
 c = (grid_max-grid_min)*0.1
